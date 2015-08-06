@@ -24,11 +24,13 @@ public class MainActivity extends FragmentActivity implements LoaderCallbacks<Cu
 
         String[] columns = new String[]{
                 SampleContentProvider.Person.AGE,
-                SampleContentProvider.Person.NAME};
+                SampleContentProvider.Person.NAME,
+                SampleContentProvider.Place.NAME};
 
         int[] ids = {
                 R.id.person_age,
-                R.id.person_name};
+                R.id.person_name,
+                R.id.person_place};
 
         adapter = new SimpleCursorAdapter(this, R.layout.person_item, null, columns, ids, 0);
 
@@ -48,7 +50,8 @@ public class MainActivity extends FragmentActivity implements LoaderCallbacks<Cu
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        return new CursorLoader(this, SampleContentProvider.Person.CONTENT_URI, null, "", null, "");
+
+        return new CursorLoader(this, SampleContentProvider.Person.CONTENT_URI, new String[] {SampleContentProvider.Person._ID, SampleContentProvider.Place.NAME, SampleContentProvider.Person.AGE, SampleContentProvider.Person.NAME}, SampleContentProvider.Place.NAME + " = ?", new String[] {"Pretoria"}, SampleContentProvider.Place.NAME + " DESC");
     }
 
     @Override
@@ -69,11 +72,17 @@ public class MainActivity extends FragmentActivity implements LoaderCallbacks<Cu
                 ContentValues values = new ContentValues();
                 values.put(SampleContentProvider.Person.AGE, 20);
                 values.put(SampleContentProvider.Person.NAME, "Some Name");
+                values.put(SampleContentProvider.Person.PLACE_REF, 1);
                 getContentResolver().insert(SampleContentProvider.Person.CONTENT_URI, values);
+                ContentValues placeValues = new ContentValues();
+                placeValues.put(SampleContentProvider.Place.NAME, "Pretoria");
+                placeValues.put(SampleContentProvider.Place.REF, 1);
+                getContentResolver().insert(SampleContentProvider.Place.CONTENT_URI, placeValues);
                 break;
 
             case R.id.delete:
                 getContentResolver().delete(SampleContentProvider.Person.CONTENT_URI, "", null);
+                getContentResolver().delete(SampleContentProvider.Place.CONTENT_URI, "", null);
                 break;
             default:
 

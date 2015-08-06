@@ -4,6 +4,7 @@ import android.net.Uri;
 import com.tjeannin.provigen.annotation.Column;
 import com.tjeannin.provigen.annotation.ContentUri;
 import com.tjeannin.provigen.annotation.Id;
+import com.tjeannin.provigen.annotation.Relation;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -15,6 +16,8 @@ public class Contract {
     private String idField;
     private String tableName;
     private List<ContractField> contractFields;
+    private Uri relatedContract;
+    private String joinStatement;
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     public Contract(Class contractClass) {
@@ -52,6 +55,16 @@ public class Contract {
                     e.printStackTrace();
                 }
             }
+
+            Relation relation = field.getAnnotation(Relation.class);
+            if(relation != null) {
+                try {
+                    this.relatedContract = (Uri)field.get(null);
+                    this.joinStatement = getTable() + "." + relation.mine() + " = " + relatedContract.getLastPathSegment() + "." + relation.theirs();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -65,6 +78,14 @@ public class Contract {
 
     public String getTable() {
         return tableName;
+    }
+
+    public Uri getRelatedContract() {
+        return relatedContract;
+    }
+
+    public String getJoinStatement() {
+        return joinStatement;
     }
 
     public List<ContractField> getFields() {

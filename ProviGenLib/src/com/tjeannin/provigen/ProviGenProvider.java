@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.text.TextUtils;
 import com.tjeannin.provigen.model.Contract;
+import com.tjeannin.provigen.model.ContractField;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,7 @@ public abstract class ProviGenProvider extends ContentProvider {
     private UriMatcher uriMatcher;
     private static final int ITEM = 1;
     private static final int ITEM_ID = 2;
+    private static final int ITEM_JOIN = 3;
     private SQLiteOpenHelper openHelper;
 
     /**
@@ -127,7 +129,43 @@ public abstract class ProviGenProvider extends ContentProvider {
 
         switch (uriMatcher.match(uri)) {
             case ITEM:
-                cursor = database.query(contract.getTable(), projection, selection, selectionArgs, "", "", sortOrder);
+                if(contract.getRelatedContract() != null) {
+                    Contract relatedContract = findMatchingContract(contract.getRelatedContract());
+                    String projectionString = "";
+                    if(projection == null) {
+                        projectionString = "*";
+                    } else {
+                        for (String column : projection) {
+                            boolean found = false;
+                            for(ContractField field : contract.getFields()) {
+                                if(field.name.equals(column)) {
+                                    projectionString += contract.getTable() + "." + column + ",";
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if(!found)
+                            for(ContractField field : relatedContract.getFields())
+                            {
+                                if(field.name.equals(column)) {
+                                    projectionString += relatedContract.getTable() + "." + column + ",";
+                                    break;
+                                }
+                            }
+                        }
+                        projectionString = projectionString.substring(0, projectionString.length() - 1);
+                    }
+                    String sql = "SELECT " + projectionString + " " +
+                            "FROM " + contract.getTable() + " " +
+                            "INNER JOIN " + relatedContract.getTable() + " ON " + contract.getJoinStatement() + " ";
+                    if(!selection.equals("")) {
+                        sql += "WHERE " + selection + " ";
+                    }
+                    if(!sortOrder.equals(""))
+                        sql += "ORDER BY " + sortOrder;
+                    cursor = database.rawQuery(sql, selectionArgs);
+                } else
+                    cursor = database.query(contract.getTable(), projection, selection, selectionArgs, "", "", sortOrder);
                 break;
             case ITEM_ID:
                 String itemId = String.valueOf(ContentUris.parseId(uri));
@@ -187,6 +225,15 @@ public abstract class ProviGenProvider extends ContentProvider {
     public Contract findMatchingContract(Uri uri) {
         for (Contract contract : contracts) {
             if (contract.getTable().equals(uri.getPathSegments().get(0))) {
+                return contract;
+            }
+        }
+        return null;
+    }
+
+    public Contract findMatchingContract(String uri) {
+        for (Contract contract : contracts) {
+            if (contract.getTable().equals(uri)) {
                 return contract;
             }
         }
